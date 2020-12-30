@@ -2,7 +2,8 @@
 #include <ArduinoJson.h>
 #include "MqttClient.h"
 
-char mqttStateTopic[128];
+char mqttBMETopic[128];
+char mqttESTopic[128];
 
 MqttClient::MqttClient(PubSubClient *pubsub) {
     this->client = pubsub;
@@ -13,8 +14,11 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
     this->client->setServer(*broker, 1883);
     this->client->setCallback(MessageReceived);
         
-    sprintf(mqttStateTopic, "%s/%s", mqttTopic, deviceIdentifier);
-    Serial.println("mqttStateTopic:        " + String(mqttStateTopic));
+    sprintf(mqttBMETopic, "%s/%s/BME", mqttTopic, deviceIdentifier);
+    Serial.println("mqttBMETopic:        " + String(mqttBMETopic));
+        
+    sprintf(mqttESTopic, "%s/%s/ES", mqttTopic, deviceIdentifier);
+    Serial.println("mqttESTopic:        " + String(mqttESTopic));
 }
 
 void MqttClient::loop(){
@@ -57,14 +61,14 @@ void MqttClient::MessageReceived(char* topic, byte* payload, unsigned int length
 
 }
 
-void MqttClient::publishState(float temperature, float pressure, float humidity, float gas) {
+void MqttClient::publishBMEState(float temperature, float pressure, float humidity, float gas) {
     char message[128];
     sprintf(message, "{\"message\":\"%s\",\"data\":{\"temperature\":%.2f,\"pressure\":%.2f,\"humidity\":%.1f,\"gas\":%.1f }}", "Hello World", temperature, pressure, humidity, gas);
-    this->client->publish(mqttStateTopic, message);
+    this->client->publish(mqttBMETopic, message);
 }
 
-void MqttClient::publishState(BME680_IAQ_Data *data) {
-
+void MqttClient::publishBMEState(BME680_IAQ_Data *data) 
+{
     char message[4096];
     DynamicJsonDocument doc(4096);
     doc["breathVocAccuracy"] = data->breathVocAccuracy;
@@ -88,6 +92,17 @@ void MqttClient::publishState(BME680_IAQ_Data *data) {
     doc["staticIaqAccuracy"] = data->staticIaqAccuracy;
     doc["temperature"] = data->temperature;
     serializeJson(doc, message);
-    
-    this->client->publish(mqttStateTopic, message);
+
+    this->client->publish(mqttBMETopic, message);
+}
+
+void MqttClient::publishESState(float temperature, float humidity)
+{
+    char message[4096];
+    DynamicJsonDocument doc(4096);
+    doc["temperature"] = temperature;
+    doc["humidity"] = humidity;
+    serializeJson(doc, message);
+
+    this->client->publish(mqttESTopic, message);
 }

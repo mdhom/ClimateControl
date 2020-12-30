@@ -24,7 +24,7 @@ IPAddress broker(192,168,188,149);                     // Address of the MQTT br
 const char* ssid     = "MMD";
 const char* password = "MMD%83139%";
 
-
-
+/* Sensor Settings */
 #define USE_BME680_IAQ
 //#define USE_BME680
+#define USE_ENVIRONMENTALSENSOR
