@@ -5,8 +5,8 @@ void checkIaqSensorStatus(void);
 
 Bsec iaqSensor;
 
-void BME680_IAQ::begin() {
-
+void BME680_IAQ::begin() 
+{
   iaqSensor.begin(BME680_I2C_ADDR_SECONDARY, Wire);
   Serial.println("BSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix));
   checkIaqSensorStatus();
