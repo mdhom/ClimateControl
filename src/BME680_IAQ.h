@@ -9,6 +9,7 @@ struct BME680_IAQ_Data {
     float iaq, rawTemperature, pressure, rawHumidity, gasResistance, stabStatus, runInStatus, temperature, humidity,
       staticIaq, co2Equivalent, breathVocEquivalent, compGasValue, gasPercentage;
     uint8_t iaqAccuracy, staticIaqAccuracy, co2Accuracy, breathVocAccuracy, compGasAccuracy, gasPercentageAcccuracy;
+    uint8_t iaqLevel;
 };
 
 class BME680_IAQ{

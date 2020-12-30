@@ -11,6 +11,7 @@ public:
     MqttClient(PubSubClient *client);
     void begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier);
     void loop();
+    
     void publishBMEState(float temperature, float pressure, float humidity, float gas);
     void publishBMEState(struct BME680_IAQ_Data *data);
 

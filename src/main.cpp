@@ -86,13 +86,13 @@ void loop()
     }
   #endif
   #ifdef USE_BME60
-    mux.enableMuxPort(0);
-    bme.startReading();
-    // could do some other work here
-    bme.endReading();
-    mux.disableMuxPort(0);
-
     if ((millis() - lastBMEStatePublished) > 1000) {
+      mux.enableMuxPort(0);
+      bme.startReading();
+      // could do some other work here
+      bme.endReading();
+      mux.disableMuxPort(0);
+
       lastBMEStatePublished = millis();
       mqtt.publishBMEState(bme.Temperature, bme.Pressure, bme.Humidity, bme.Gas);
     }
@@ -100,10 +100,11 @@ void loop()
   #ifdef USE_BME680_IAQ
     mux.enableMuxPort(0);
     bmeIAQ.loop();
+    mux.disableMuxPort(0);
+    
     if (bmeIAQ.dataUpdated) {
       mqtt.publishBMEState(&bmeIAQ.data);
     }
-    mux.disableMuxPort(0);
   #endif
 
   digitalWrite(LED_BUILTIN, LOW);

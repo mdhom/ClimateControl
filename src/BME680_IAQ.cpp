@@ -33,26 +33,55 @@ void BME680_IAQ::loop()
   if (iaqSensor.run()) 
   { 
     // If new data is available
-    this->data.breathVocAccuracy = iaqSensor.breathVocAccuracy;
-    this->data.breathVocEquivalent = iaqSensor.breathVocEquivalent;
-    this->data.co2Accuracy = iaqSensor.co2Accuracy;
-    this->data.co2Equivalent = iaqSensor.co2Equivalent;
-    this->data.compGasAccuracy = iaqSensor.compGasAccuracy;
-    this->data.compGasValue = iaqSensor.compGasValue;
-    this->data.gasPercentage = iaqSensor.gasPercentage;
+    this->data.breathVocAccuracy      = iaqSensor.breathVocAccuracy;
+    this->data.breathVocEquivalent    = iaqSensor.breathVocEquivalent;
+    this->data.co2Accuracy            = iaqSensor.co2Accuracy;
+    this->data.co2Equivalent          = iaqSensor.co2Equivalent;
+    this->data.compGasAccuracy        = iaqSensor.compGasAccuracy;
+    this->data.compGasValue           = iaqSensor.compGasValue;
+    this->data.gasPercentage          = iaqSensor.gasPercentage;
     this->data.gasPercentageAcccuracy = iaqSensor.gasPercentageAcccuracy;
-    this->data.gasResistance = iaqSensor.gasResistance;
-    this->data.humidity = iaqSensor.humidity;
-    this->data.iaq = iaqSensor.iaq;
-    this->data.iaqAccuracy = iaqSensor.iaqAccuracy;
-    this->data.pressure = iaqSensor.pressure;
-    this->data.rawHumidity = iaqSensor.rawHumidity;
-    this->data.rawTemperature = iaqSensor.rawTemperature;
-    this->data.runInStatus = iaqSensor.runInStatus;
-    this->data.stabStatus = iaqSensor.stabStatus;
-    this->data.staticIaq = iaqSensor.staticIaq;
-    this->data.staticIaqAccuracy = iaqSensor.staticIaqAccuracy;
-    this->data.temperature = iaqSensor.temperature;
+    this->data.gasResistance          = iaqSensor.gasResistance;
+    this->data.humidity               = iaqSensor.humidity;
+    this->data.iaq                    = iaqSensor.iaq;
+    this->data.iaqAccuracy            = iaqSensor.iaqAccuracy;
+    this->data.pressure               = iaqSensor.pressure;
+    this->data.rawHumidity            = iaqSensor.rawHumidity;
+    this->data.rawTemperature         = iaqSensor.rawTemperature;
+    this->data.runInStatus            = iaqSensor.runInStatus;
+    this->data.stabStatus             = iaqSensor.stabStatus;
+    this->data.staticIaq              = iaqSensor.staticIaq;
+    this->data.staticIaqAccuracy      = iaqSensor.staticIaqAccuracy;
+    this->data.temperature            = iaqSensor.temperature;
+
+    if (iaqSensor.iaq < 0) {
+      this->data.iaqLevel = -1;
+    } else if (iaqSensor.iaq <= 50) {
+      this->data.iaqLevel = 0;
+    } else if(iaqSensor.iaq <= 100) {
+      this->data.iaqLevel = 1;
+    } else if(iaqSensor.iaq <= 150) {
+      this->data.iaqLevel = 2;
+    } else if(iaqSensor.iaq <= 200) {
+      this->data.iaqLevel = 3;
+    } else if(iaqSensor.iaq <= 300) {
+      this->data.iaqLevel = 4;
+    } else if(iaqSensor.iaq <= 500) {
+      this->data.iaqLevel = 5;
+    } else {
+      this->data.iaqLevel = -2;
+    }
+
+    Serial.print("BME680: Temp[");
+    Serial.print(iaqSensor.temperature);
+    Serial.print("]C Pressure[");
+    Serial.print(iaqSensor.pressure);
+    Serial.print("]Pa Humidity[");
+    Serial.print(iaqSensor.humidity);
+    Serial.print("]% IAQ[");
+    Serial.print(iaqSensor.iaq);
+    Serial.print("]");
+    Serial.println();
 
     dataUpdated = true;
   } 

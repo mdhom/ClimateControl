@@ -5,23 +5,26 @@
 char mqttBMETopic[128];
 char mqttESTopic[128];
 
-MqttClient::MqttClient(PubSubClient *pubsub) {
+MqttClient::MqttClient(PubSubClient *pubsub) 
+{
     this->client = pubsub;
 }
 
-void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier) {
+void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier) 
+{
     this->DeviceIdentifier = deviceIdentifier;
     this->client->setServer(*broker, 1883);
     this->client->setCallback(MessageReceived);
         
     sprintf(mqttBMETopic, "%s/%s/BME", mqttTopic, deviceIdentifier);
-    Serial.println("mqttBMETopic:        " + String(mqttBMETopic));
+    Serial.println("mqttBMETopic:   " + String(mqttBMETopic));
         
     sprintf(mqttESTopic, "%s/%s/ES", mqttTopic, deviceIdentifier);
-    Serial.println("mqttESTopic:        " + String(mqttESTopic));
+    Serial.println("mqttESTopic:    " + String(mqttESTopic));
 }
 
-void MqttClient::loop(){
+void MqttClient::loop()
+{
   if (!this->client->connected()) {
     this->reconnectMqtt();
   } else {
@@ -57,11 +60,12 @@ void MqttClient::reconnectMqtt()
   }
 } 
 
-void MqttClient::MessageReceived(char* topic, byte* payload, unsigned int length) {
-
+void MqttClient::MessageReceived(char* topic, byte* payload, unsigned int length) 
+{
 }
 
-void MqttClient::publishBMEState(float temperature, float pressure, float humidity, float gas) {
+void MqttClient::publishBMEState(float temperature, float pressure, float humidity, float gas) 
+{
     char message[128];
     sprintf(message, "{\"message\":\"%s\",\"data\":{\"temperature\":%.2f,\"pressure\":%.2f,\"humidity\":%.1f,\"gas\":%.1f }}", "Hello World", temperature, pressure, humidity, gas);
     this->client->publish(mqttBMETopic, message);
