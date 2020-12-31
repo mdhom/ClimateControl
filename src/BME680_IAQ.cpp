@@ -4,6 +4,7 @@
 void checkIaqSensorStatus(void);
 
 Bsec iaqSensor;
+int lastErrorPrint = millis() - 30000;
 
 void BME680_IAQ::begin() 
 {
@@ -83,31 +84,55 @@ void BME680_IAQ::loop()
     Serial.print("]");
     Serial.println();
 
+    isOnline = true;
+
     dataUpdated = true;
   } 
   else 
-  {
-    checkIaqSensorStatus();
-    
+  {    
+    this->checkIaqSensorStatus();
+
     dataUpdated = false;
   }
 }
 
-void checkIaqSensorStatus(void)
+void BME680_IAQ::checkIaqSensorStatus(void)
 {
+  this->BSECErrorCode = "";
+  this->BSECWarningCode = "";
   if (iaqSensor.status != BSEC_OK) {
+    isOnline = false;
     if (iaqSensor.status < BSEC_OK) {
-      Serial.println("BSEC error code : " + String(iaqSensor.status));
+      this->BSECErrorCode = String(iaqSensor.status);
+      if ((millis() - lastErrorPrint) > 2000) {
+        lastErrorPrint = millis();
+        Serial.println("BSEC error code : " + this->BSECErrorCode);
+      }
     } else {
-      Serial.println("BSEC warning code : " + String(iaqSensor.status));
+      this->BSECWarningCode = String(iaqSensor.status);
+      if ((millis() - lastErrorPrint) > 2000) {
+        lastErrorPrint = millis();
+        Serial.println("BSEC warning code : " + this->BSECWarningCode);
+      }
     }
   }
 
+  this->BMEErrorCode = "";
+  this->BMEWarningCode = "";
   if (iaqSensor.bme680Status != BME680_OK) {
+    isOnline = false;
     if (iaqSensor.bme680Status < BME680_OK) {
-      Serial.println("BME680 error code : " + String(iaqSensor.bme680Status));
+      this->BMEErrorCode = String(iaqSensor.bme680Status);
+      if ((millis() - lastErrorPrint) > 2000) {
+        lastErrorPrint = millis();
+        Serial.println("BME680 error code : " + this->BMEErrorCode);
+      }
     } else {
-      Serial.println("BME680 warning code : " + String(iaqSensor.bme680Status));
+      this->BMEWarningCode = String(iaqSensor.bme680Status);
+      if ((millis() - lastErrorPrint) > 2000) {
+        lastErrorPrint = millis();
+        Serial.println("BME680 warning code : " + this->BMEWarningCode);
+      }
     }
   }
 }

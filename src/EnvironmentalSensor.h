@@ -14,6 +14,8 @@ public:
     float Humidity;
     float Pressure;
     double DewPoint;
+    bool BME280Online;
+    bool CCS811Online;
 
     EnvironmentalSensor();
     void begin();

@@ -4,6 +4,9 @@
 
 char mqttBMETopic[128];
 char mqttESTopic[128];
+char mqttSystemTopic[128];
+
+char systemStateMessageLc[4096];
 
 MqttClient::MqttClient(PubSubClient *pubsub) 
 {
@@ -17,10 +20,13 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
     this->client->setCallback(MessageReceived);
         
     sprintf(mqttBMETopic, "%s/%s/BME", mqttTopic, deviceIdentifier);
-    Serial.println("mqttBMETopic:   " + String(mqttBMETopic));
+    Serial.println("mqttBMETopic:    " + String(mqttBMETopic));
         
     sprintf(mqttESTopic, "%s/%s/ES", mqttTopic, deviceIdentifier);
-    Serial.println("mqttESTopic:    " + String(mqttESTopic));
+    Serial.println("mqttESTopic:     " + String(mqttESTopic));
+        
+    sprintf(mqttSystemTopic, "%s/%s", mqttTopic, deviceIdentifier);
+    Serial.println("mqttSystemTopic: " + String(mqttSystemTopic));
 }
 
 void MqttClient::loop()
@@ -73,41 +79,74 @@ void MqttClient::publishBMEState(float temperature, float pressure, float humidi
 
 void MqttClient::publishBMEState(BME680_IAQ_Data *data) 
 {
-    char message[4096];
-    DynamicJsonDocument doc(4096);
-    doc["breathVocAccuracy"] = data->breathVocAccuracy;
-    doc["breathVocEquivalent"] = data->breathVocEquivalent;
-    doc["co2Accuracy"] = data->co2Accuracy;
-    doc["co2Equivalent"] = data->co2Equivalent;
-    doc["compGasAccuracy"] = data->compGasAccuracy;
-    doc["compGasValue"] = data->compGasValue;
-    doc["gasPercentage"] = data->gasPercentage;
-    doc["gasPercentageAcccuracy"] = data->gasPercentageAcccuracy;
-    doc["gasResistance"] = data->gasResistance;
-    doc["humidity"] = data->humidity;
-    doc["iaq"] = data->iaq;
-    doc["iaqAccuracy"] = data->iaqAccuracy;
-    doc["iaqLevel"] = data->iaqLevel;
-    doc["pressure"] = data->pressure;
-    doc["rawHumidity"] = data->rawHumidity;
-    doc["rawTemperature"] = data->rawTemperature;
-    doc["runInStatus"] = data->runInStatus;
-    doc["stabStatus"] = data->stabStatus;
-    doc["staticIaq"] = data->staticIaq;
-    doc["staticIaqAccuracy"] = data->staticIaqAccuracy;
-    doc["temperature"] = data->temperature;
-    serializeJson(doc, message);
+  char message[4096];
+  DynamicJsonDocument doc(4096);
+  doc["breathVocAccuracy"] = data->breathVocAccuracy;
+  doc["breathVocEquivalent"] = data->breathVocEquivalent;
+  doc["co2Accuracy"] = data->co2Accuracy;
+  doc["co2Equivalent"] = data->co2Equivalent;
+  doc["compGasAccuracy"] = data->compGasAccuracy;
+  doc["compGasValue"] = data->compGasValue;
+  doc["gasPercentage"] = data->gasPercentage;
+  doc["gasPercentageAcccuracy"] = data->gasPercentageAcccuracy;
+  doc["gasResistance"] = data->gasResistance;
+  doc["humidity"] = data->humidity;
+  doc["iaq"] = data->iaq;
+  doc["iaqAccuracy"] = data->iaqAccuracy;
+  doc["iaqLevel"] = data->iaqLevel;
+  doc["pressure"] = data->pressure;
+  doc["rawHumidity"] = data->rawHumidity;
+  doc["rawTemperature"] = data->rawTemperature;
+  doc["runInStatus"] = data->runInStatus;
+  doc["stabStatus"] = data->stabStatus;
+  doc["staticIaq"] = data->staticIaq;
+  doc["staticIaqAccuracy"] = data->staticIaqAccuracy;
+  doc["temperature"] = data->temperature;
+  serializeJson(doc, message);
 
-    this->client->publish(mqttBMETopic, message);
+  this->client->publish(mqttBMETopic, message);
 }
 
 void MqttClient::publishESState(float temperature, float humidity)
 {
-    char message[4096];
-    DynamicJsonDocument doc(4096);
-    doc["temperature"] = temperature;
-    doc["humidity"] = humidity;
-    serializeJson(doc, message);
+  char message[4096];
+  DynamicJsonDocument doc(4096);
+  doc["temperature"] = temperature;
+  doc["humidity"] = humidity;
+  serializeJson(doc, message);
 
-    this->client->publish(mqttESTopic, message);
+  this->client->publish(mqttESTopic, message);
+}
+
+void MqttClient::publishSystemState()
+{
+  char message[4096];
+  DynamicJsonDocument doc(4096);
+
+  doc["BME280Equipped"] = BME280Equipped;
+  if (BME280Equipped) {
+    doc["BME280Online"] = BME280Online;
+  }
+
+  doc["CCS811Equipped"] = CCS811Equipped;
+  if (CCS811Equipped) {
+    doc["CCS811Online"] = CCS811Online;
+  }
+
+  doc["BME680Equipped"] = BME680Equipped;
+  if (BME680Equipped) {
+    doc["BME680Online"] = BME680Online;
+    doc["BSECErrorCode"] = BSECErrorCode;
+    doc["BSECWarningCode"] = BSECWarningCode;
+    doc["BMEErrorCode"] = BMEErrorCode;
+    doc["BMEWarningCode"] = BMEWarningCode;
+  }
+
+  serializeJson(doc, message);
+
+  if (strcmp(message, systemStateMessageLc) != 0)
+  {
+    strcpy(systemStateMessageLc, message);
+    this->client->publish(mqttSystemTopic, message);
+  }
 }

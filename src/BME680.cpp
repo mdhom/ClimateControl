@@ -8,6 +8,7 @@ BME680::BME680() {
 bool BME680::begin(){
     if (!bme.begin()) {
         Serial.println(F("Could not find a valid BME680 sensor, check wiring!"));
+        isOnline = false;
         return false;
     }
 
@@ -18,6 +19,7 @@ bool BME680::begin(){
     bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
     bme.setGasHeater(320, 150); // 320*C for 150 ms
 
+    isOnline = true;
     return true;
 }
 

@@ -11,6 +11,8 @@ public:
     float Pressure;     // hPa
     float Humidity;     // %
     float Gas;          // KOhms
+    
+    bool isOnline;
 
     BME680();
     bool begin();

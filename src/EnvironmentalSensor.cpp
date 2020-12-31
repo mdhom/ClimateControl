@@ -38,12 +38,14 @@ void EnvironmentalSensor::initBME280()
   byte id = myBME280.begin(); //Returns ID of 0x60 if successful
   if (id != 0x60)
   {
+    BME280Online = false;
     Serial.println("Problem with BME280");
-    while (1)
-      ;
   }
-  
-  Serial.println("BME280 online");
+  else
+  {
+    BME280Online = true;
+    Serial.println("BME280 online");
+  }  
 }
 
 void EnvironmentalSensor::initCCS811()
@@ -54,18 +56,23 @@ void EnvironmentalSensor::initCCS811()
   Serial.println(myCCS811.statusString(returnCode));
 
   if (myCCS811.begin() == false) {
+    CCS811Online = false;
     Serial.println("ERROR WITH CCS811");
-    while (1)
-      ;
   }
-
-  Serial.println("CCS811 online");
+  else
+  {
+    CCS811Online = true;
+    Serial.println("CCS811 online");
+  }
 }
 
 void EnvironmentalSensor::fetch()
 {
   if (myCCS811.dataAvailable())
   {
+    CCS811Online = true;
+    BME280Online = true;
+
     myCCS811.readAlgorithmResults();
 
     CO2 = myCCS811.getCO2();
@@ -98,8 +105,15 @@ void EnvironmentalSensor::fetch()
   }
   else if (myCCS811.checkForStatusError())
   {
+    CCS811Online = false;
+    BME280Online = false;
     Serial.print("CCS811 ERROR: ");
     Serial.println(myCCS811.getErrorRegister()); //Prints whatever CSS811 error flags are detected
+  }
+  else
+  {
+    initCCS811();
+    initBME280();
   }
 }
 

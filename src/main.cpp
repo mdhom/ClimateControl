@@ -10,6 +10,7 @@ WiFiClient wificlient;
 WifiReconnector wifiReconnector;
 PubSubClient client(wificlient);
 MqttClient mqtt(&client);
+int lastSystemStatePublished = millis();
 
 MuxControl mux;
 
@@ -46,6 +47,8 @@ void setup()
   // start I2C
   Wire.begin();
   #ifdef USE_BME60
+    mqtt.BME680Equipped = true;
+
     mux.enableMuxPort(0);
     while (!bme.begin()) {
       delay(1000);
@@ -53,11 +56,16 @@ void setup()
     mux.disableMuxPort(0);
   #endif
   #ifdef USE_BME680_IAQ
+    mqtt.BME680Equipped = true;
+
     mux.enableMuxPort(0);
     bmeIAQ.begin();
     mux.disableMuxPort(0);
   #endif
   #ifdef USE_ENVIRONMENTALSENSOR
+    mqtt.BME280Equipped = true;
+    mqtt.CCS811Equipped = true;
+
     mux.enableMuxPort(1);
     environmentalSensor.begin();
     mux.disableMuxPort(1);
@@ -81,6 +89,9 @@ void loop()
       environmentalSensor.fetch();
       mux.disableMuxPort(1);
 
+      mqtt.CCS811Online = environmentalSensor.CCS811Online;
+      mqtt.BME280Online = environmentalSensor.BME280Online;
+
       lastEnvironmentalSensorPublished = millis();
       mqtt.publishESState(environmentalSensor.Temperature, environmentalSensor.Humidity);
     }
@@ -93,6 +104,8 @@ void loop()
       bme.endReading();
       mux.disableMuxPort(0);
 
+      mqtt.BME680Online = bme.isOnline;
+
       lastBMEStatePublished = millis();
       mqtt.publishBMEState(bme.Temperature, bme.Pressure, bme.Humidity, bme.Gas);
     }
@@ -101,11 +114,22 @@ void loop()
     mux.enableMuxPort(0);
     bmeIAQ.loop();
     mux.disableMuxPort(0);
-    
+
+    mqtt.BME680Online    = bmeIAQ.isOnline;
+    mqtt.BSECErrorCode   = bmeIAQ.BSECErrorCode;
+    mqtt.BSECWarningCode = bmeIAQ.BSECWarningCode;
+    mqtt.BMEErrorCode    = bmeIAQ.BMEErrorCode;
+    mqtt.BMEWarningCode  = bmeIAQ.BMEWarningCode;
+
     if (bmeIAQ.dataUpdated) {
       mqtt.publishBMEState(&bmeIAQ.data);
     }
   #endif
+
+  if ((millis() - lastSystemStatePublished) > 500) {
+    lastSystemStatePublished = millis();
+    mqtt.publishSystemState();
+  }
 
   digitalWrite(LED_BUILTIN, LOW);
 }

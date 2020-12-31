@@ -14,12 +14,19 @@ struct BME680_IAQ_Data {
 
 class BME680_IAQ{
 public:
-    struct BME680_IAQ_Data data;
     bool dataUpdated;
+    struct BME680_IAQ_Data data;
+
+    bool isOnline;
+    String BSECErrorCode;
+    String BSECWarningCode;
+    String BMEErrorCode;
+    String BMEWarningCode;
     
     void begin();
     void loop();
 private:
+    void checkIaqSensorStatus(void);
 };
 
 #endif
