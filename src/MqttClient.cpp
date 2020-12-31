@@ -87,6 +87,7 @@ void MqttClient::publishBMEState(BME680_IAQ_Data *data)
     doc["humidity"] = data->humidity;
     doc["iaq"] = data->iaq;
     doc["iaqAccuracy"] = data->iaqAccuracy;
+    doc["iaqLevel"] = data->iaqLevel;
     doc["pressure"] = data->pressure;
     doc["rawHumidity"] = data->rawHumidity;
     doc["rawTemperature"] = data->rawTemperature;
