@@ -45,7 +45,7 @@ void BME680::endReading() {
     
     Serial.print(F("Temperature = "));
     Serial.print(bme.temperature);
-    Serial.println(F(" *C"));
+    Serial.println(F(" °C"));
     this->Temperature = bme.temperature;
 
     Serial.print(F("Pressure = "));
