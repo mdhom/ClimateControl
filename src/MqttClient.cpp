@@ -7,6 +7,7 @@ char mqttESTopic[128];
 char mqttSystemTopic[128];
 
 char systemStateMessageLc[4096];
+int lastStatePublished = millis();
 
 MqttClient::MqttClient(PubSubClient *pubsub) 
 {
@@ -144,9 +145,15 @@ void MqttClient::publishSystemState()
 
   serializeJson(doc, message);
 
-  if (strcmp(message, systemStateMessageLc) != 0)
+  if (strcmp(message, systemStateMessageLc) != 0 || (millis() - lastStatePublished) > 30000)
   {
     strcpy(systemStateMessageLc, message);
+
+    // now add json properties which should not be diffed
+    doc["WiFiRSSI"] = WiFiRSSI;
+    serializeJson(doc, message);
+
+    lastStatePublished = millis();
     this->client->publish(mqttSystemTopic, message);
   }
 }

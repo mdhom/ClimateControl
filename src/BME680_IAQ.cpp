@@ -1,10 +1,14 @@
 #include "BME680_IAQ.h"
 #include "bsec.h"
+#include "MovingAverage.h"
 
 void checkIaqSensorStatus(void);
 
 Bsec iaqSensor;
 int lastErrorPrint = millis() - 30000;
+MovingAverage maIAQ(20);
+MovingAverage maTemperature(20);
+MovingAverage maHumidity(20);
 
 void BME680_IAQ::begin() 
 {
@@ -43,8 +47,10 @@ void BME680_IAQ::loop()
     this->data.gasPercentage          = iaqSensor.gasPercentage;
     this->data.gasPercentageAcccuracy = iaqSensor.gasPercentageAcccuracy;
     this->data.gasResistance          = iaqSensor.gasResistance;
-    this->data.humidity               = iaqSensor.humidity;
-    this->data.iaq                    = iaqSensor.iaq;
+    maHumidity.add(iaqSensor.humidity);
+    this->data.humidity               = maHumidity.getCurrentAverage();
+    maIAQ.add(iaqSensor.iaq);
+    this->data.iaq                    = maIAQ.getCurrentAverage();
     this->data.iaqAccuracy            = iaqSensor.iaqAccuracy;
     this->data.pressure               = iaqSensor.pressure;
     this->data.rawHumidity            = iaqSensor.rawHumidity;
@@ -53,7 +59,8 @@ void BME680_IAQ::loop()
     this->data.stabStatus             = iaqSensor.stabStatus;
     this->data.staticIaq              = iaqSensor.staticIaq;
     this->data.staticIaqAccuracy      = iaqSensor.staticIaqAccuracy;
-    this->data.temperature            = iaqSensor.temperature;
+    maTemperature.add(iaqSensor.temperature);
+    this->data.temperature            = maTemperature.getCurrentAverage();
 
     if (iaqSensor.iaq < 0) {
       this->data.iaqLevel = -1;

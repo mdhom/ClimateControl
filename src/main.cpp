@@ -17,6 +17,7 @@ MuxControl mux;
 #ifdef USE_ENVIRONMENTALSENSOR
   #include "EnvironmentalSensor.h"
   EnvironmentalSensor environmentalSensor;
+  int lastEnvironmentalSensorMeasured  = millis();
   int lastEnvironmentalSensorPublished = millis();
 #endif
 #ifdef USE_BME60
@@ -27,6 +28,7 @@ MuxControl mux;
 #ifdef USE_BME680_IAQ
   #include "BME680_IAQ.h"
   BME680_IAQ bmeIAQ;
+  int lastBMEPublished = millis();
 #endif
 
 void setup() 
@@ -75,16 +77,17 @@ void setup()
 void loop() 
 {
   if (!wifiReconnector.isConnected()) {
-    delay(80);
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
     return;
   }
+  mqtt.WiFiRSSI = wifiReconnector.RSSI;
   
   mqtt.loop();
-  
-  digitalWrite(LED_BUILTIN, HIGH);
 
   #ifdef USE_ENVIRONMENTALSENSOR
-    if ((millis() - lastEnvironmentalSensorPublished) > 1000) {
+    if ((millis() - lastEnvironmentalSensorMeasured) > 1000) {
       mux.enableMuxPort(1);
       environmentalSensor.fetch();
       mux.disableMuxPort(1);
@@ -92,8 +95,15 @@ void loop()
       mqtt.CCS811Online = environmentalSensor.CCS811Online;
       mqtt.BME280Online = environmentalSensor.BME280Online;
 
-      lastEnvironmentalSensorPublished = millis();
-      mqtt.publishESState(environmentalSensor.Temperature, environmentalSensor.Humidity);
+      lastEnvironmentalSensorMeasured = millis();
+
+      if ((millis() - lastEnvironmentalSensorPublished) > 10000) {
+        lastEnvironmentalSensorPublished = millis();
+
+        mqtt.publishESState(
+          environmentalSensor.Temperature, 
+          environmentalSensor.Humidity);
+      }
     }
   #endif
   #ifdef USE_BME60
@@ -111,9 +121,9 @@ void loop()
     }
   #endif
   #ifdef USE_BME680_IAQ
-    mux.enableMuxPort(0);
+    mux.enableMuxPort(2);
     bmeIAQ.loop();
-    mux.disableMuxPort(0);
+    mux.disableMuxPort(2);
 
     mqtt.BME680Online    = bmeIAQ.isOnline;
     mqtt.BSECErrorCode   = bmeIAQ.BSECErrorCode;
@@ -121,7 +131,8 @@ void loop()
     mqtt.BMEErrorCode    = bmeIAQ.BMEErrorCode;
     mqtt.BMEWarningCode  = bmeIAQ.BMEWarningCode;
 
-    if (bmeIAQ.dataUpdated) {
+    if ((millis() - lastBMEPublished) > 10000) {
+      lastBMEPublished = millis();
       mqtt.publishBMEState(&bmeIAQ.data);
     }
   #endif
@@ -130,6 +141,4 @@ void loop()
     lastSystemStatePublished = millis();
     mqtt.publishSystemState();
   }
-
-  digitalWrite(LED_BUILTIN, LOW);
 }

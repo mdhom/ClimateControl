@@ -2,8 +2,10 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include "WifiReconnector.h" 
+#include "MovingAverage.h"
 
 int lastStatus = WL_DISCONNECTED;
+MovingAverage maRSSI(50);
 
 void WifiReconnector::begin(const char *ssid, const char *password)
 {
@@ -35,6 +37,9 @@ bool WifiReconnector::isConnected()
 
         lastStatus = status;
     }
+
+    maRSSI.add(WiFi.RSSI());
+    RSSI = maRSSI.getCurrentAverage();
 
     return status == WL_CONNECTED;
 }

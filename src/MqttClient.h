@@ -11,6 +11,7 @@ public:
     bool BME280Equipped, CCS811Equipped, BME680Equipped;
     bool BME280Online, CCS811Online, BME680Online;
     String BSECErrorCode, BSECWarningCode, BMEErrorCode, BMEWarningCode;
+    int8_t WiFiRSSI;
 
     MqttClient(PubSubClient *client);
     void begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier);

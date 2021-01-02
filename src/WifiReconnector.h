@@ -7,6 +7,8 @@ class WifiReconnector{
 public:
     const char *SSID;
     const char *Password;
+    int8_t RSSI;
+    
     void begin(const char *ssid, const char *password);
     bool isConnected();
 private:

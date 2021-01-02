@@ -4,12 +4,16 @@
 #include <SparkFunBME280.h>
 #include <SparkFunCCS811.h>
 #include <Wire.h>
+#include "MovingAverage.h"
 
 float initialBMETemperature = -1;
 float heatedBMETemperature = -1;
 
 CCS811 myCCS811(0x5B);  //Default I2C Address
 BME280 myBME280;
+
+MovingAverage maTemp(20);
+MovingAverage maHum(20);
 
 EnvironmentalSensor::EnvironmentalSensor()
 {
@@ -77,9 +81,15 @@ void EnvironmentalSensor::fetch()
 
     CO2 = myCCS811.getCO2();
     TVOC = myCCS811.getTVOC();
-    Temperature = myBME280.readTempC();
+
+    maTemp.add(myBME280.readTempC());
+    Temperature = maTemp.getCurrentAverage();
+
     Pressure = myBME280.readFloatPressure();
-    Humidity = myBME280.readFloatHumidity();
+
+    maHum.add(myBME280.readFloatHumidity());
+    Humidity = maHum.getCurrentAverage();
+
     DewPoint = myBME280.dewPointC();
 
     if (initialBMETemperature == -1) {
@@ -90,10 +100,16 @@ void EnvironmentalSensor::fetch()
 
     if (initialBMETemperature != -1 && heatedBMETemperature != -1) {
       float offset = (heatedBMETemperature - initialBMETemperature);
-      Temperature = Temperature - offset;
-      Serial.print("Corrected temperature by ");
-      Serial.print(offset);
-      Serial.println("°");
+      if (offset >= 0) {
+        Temperature = Temperature - offset;
+        Serial.print("Corrected temperature by ");
+        Serial.print(offset);
+        Serial.println("°");
+      } else {
+        Serial.print("Invalid offset: ");
+        Serial.print(offset);
+        Serial.println("°");
+      }
     } else {
       Serial.println("No temperature correction available");
     }
