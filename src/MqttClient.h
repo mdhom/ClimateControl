@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <Wifi.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 #include "BME680_IAQ.h"
+#include "PreferencesManager.h"
 
 class MqttClient{
 public:
@@ -13,7 +15,7 @@ public:
     String BSECErrorCode, BSECWarningCode, BMEErrorCode, BMEWarningCode;
     int8_t WiFiRSSI;
 
-    MqttClient(PubSubClient *client);
+    MqttClient(PubSubClient *client, PreferencesManager *preferences);
     void begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier);
     void loop();
 
@@ -23,12 +25,18 @@ public:
     void publishESState(float temperature, float humidity);
 
     void publishSystemState();
+    void publishError(String error);
+
+    void publishConfig();
     
-    static void MessageReceived(char* topic, byte* payload, unsigned int length);
+    void MessageReceived(char* topic, byte* payload, unsigned int length);
 private:
     const char *DeviceIdentifier;
     PubSubClient* client;
+    PreferencesManager* preferencesManager;
     void reconnectMqtt();
+
+    void handleConfigMessage(StaticJsonDocument<200> *doc);
 };
 
 #endif

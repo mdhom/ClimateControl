@@ -5,11 +5,13 @@
 #include "WifiReconnector.h"
 #include "MqttClient.h"
 #include "MuxControl.h"
+#include "PreferencesManager.h"
 
+PreferencesManager preferencesManager;
 WiFiClient wificlient;
 WifiReconnector wifiReconnector;
 PubSubClient client(wificlient);
-MqttClient mqtt(&client);
+MqttClient mqtt(&client, &preferencesManager);
 int lastSystemStatePublished = millis();
 
 MuxControl mux;
@@ -72,6 +74,9 @@ void setup()
     environmentalSensor.begin();
     mux.disableMuxPort(1);
   #endif
+
+  Serial.print("PublishInterval: ");
+  Serial.println(preferencesManager.GetPublishInterval());
 }
 
 void loop() 
@@ -97,7 +102,7 @@ void loop()
 
       lastEnvironmentalSensorMeasured = millis();
 
-      if ((millis() - lastEnvironmentalSensorPublished) > 10000) {
+      if ((millis() - lastEnvironmentalSensorPublished) > preferencesManager.GetPublishInterval()) {
         lastEnvironmentalSensorPublished = millis();
 
         mqtt.publishESState(
@@ -131,7 +136,7 @@ void loop()
     mqtt.BMEErrorCode    = bmeIAQ.BMEErrorCode;
     mqtt.BMEWarningCode  = bmeIAQ.BMEWarningCode;
 
-    if ((millis() - lastBMEPublished) > 10000) {
+    if ((millis() - lastBMEPublished) > preferencesManager.GetPublishInterval()) {
       lastBMEPublished = millis();
       mqtt.publishBMEState(&bmeIAQ.data);
     }
