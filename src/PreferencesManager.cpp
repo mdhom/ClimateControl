@@ -4,6 +4,15 @@ PreferencesManager::PreferencesManager(){
     _isEditing = false;
 }
 
+void PreferencesManager::PrintCurrentConfig(){
+    Serial.println("--- CURRENT CONFIG START ---");
+    
+    Serial.print("PublishInterval:      ");
+    Serial.println(GetPublishInterval());
+
+    Serial.println("--- CURRENT CONFIG END ---");
+}
+
 bool PreferencesManager::beginEdit()
 {
     if (_isEditing)

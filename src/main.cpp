@@ -40,6 +40,8 @@ void setup()
   Serial.println();
   Serial.println("AirControl Start Up");
   Serial.println();
+  
+  preferencesManager.PrintCurrentConfig();
 
   WiFi.mode(WIFI_STA);
   wifiReconnector.begin(ssid, password);
@@ -74,9 +76,6 @@ void setup()
     environmentalSensor.begin();
     mux.disableMuxPort(1);
   #endif
-
-  Serial.print("PublishInterval: ");
-  Serial.println(preferencesManager.GetPublishInterval());
 }
 
 void loop() 

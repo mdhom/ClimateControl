@@ -16,6 +16,8 @@ public:
     PreferencesManager();
     bool beginEdit();
     void endEdit();
+
+    void PrintCurrentConfig();
     
     void SetPublishInterval(uint interval);
     uint GetPublishInterval();
