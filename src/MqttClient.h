@@ -14,6 +14,8 @@ public:
     bool BME280Online, CCS811Online, BME680Online;
     String BSECErrorCode, BSECWarningCode, BMEErrorCode, BMEWarningCode;
     int8_t WiFiRSSI;
+    float FanSetValue = 70;
+    float FanTachoValue;
 
     MqttClient(PubSubClient *client, PreferencesManager *preferences);
     void begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier);
@@ -37,6 +39,8 @@ private:
     void reconnectMqtt();
 
     void handleConfigMessage(StaticJsonDocument<200> *doc);
+    void handleSetFanMessage(StaticJsonDocument<200> *doc);
+    void handleSetPWMFrequencyMessage(StaticJsonDocument<200> *doc);
 };
 
 #endif

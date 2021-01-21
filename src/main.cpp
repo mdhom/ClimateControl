@@ -6,6 +6,7 @@
 #include "MqttClient.h"
 #include "MuxControl.h"
 #include "PreferencesManager.h"
+#include "Fan.h"
 
 PreferencesManager preferencesManager;
 WiFiClient wificlient;
@@ -13,6 +14,8 @@ WifiReconnector wifiReconnector;
 PubSubClient client(wificlient);
 MqttClient mqtt(&client, &preferencesManager);
 int lastSystemStatePublished = millis();
+
+Fan fan(21, 1, 25000, 8, 17);
 
 MuxControl mux;
 
@@ -76,6 +79,8 @@ void setup()
     environmentalSensor.begin();
     mux.disableMuxPort(1);
   #endif
+  
+  fan.begin();
 }
 
 void loop() 
@@ -145,4 +150,10 @@ void loop()
     lastSystemStatePublished = millis();
     mqtt.publishSystemState();
   }
+
+  if (fan.setSpeed(mqtt.FanSetValue)) {
+    mqtt.publishSystemState();
+  }
+  fan.loop();
+  mqtt.FanTachoValue = fan.TachoSpeed;
 }

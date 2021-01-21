@@ -2,7 +2,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
-const char* roomIdentifier              = "Bathroom";
+const char* roomIdentifier              = "DachbodenFan";
 const char* mqttTopic                   = "climatecontrol";
 
 const char* mqttWriteTopicSuffix        = "write";
@@ -27,4 +27,5 @@ const char* password = "MMD%83139%";
 /* Sensor Settings */
 #define USE_BME680_IAQ
 //#define USE_BME680
-#define USE_ENVIRONMENTALSENSOR
+//#define USE_ENVIRONMENTALSENSOR
+//#define USE_MUX

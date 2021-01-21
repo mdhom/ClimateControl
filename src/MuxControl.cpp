@@ -9,6 +9,7 @@
 //Enables a specific port number
 void MuxControl::enableMuxPort(int portNumber)
 {
+  #ifdef USE_MUX
   if (portNumber > 7) portNumber = 7;
 
   Wire.beginTransmission(MUX_ADDR);
@@ -22,11 +23,13 @@ void MuxControl::enableMuxPort(int portNumber)
 
   Wire.write(settings);
   Wire.endTransmission();
+  #endif
 }
 
 //Disables a specific port number
 void MuxControl::disableMuxPort(int portNumber)
 {
+  #ifdef USE_MUX
   if (portNumber > 7) portNumber = 7;
 
   Wire.beginTransmission(MUX_ADDR);
@@ -40,4 +43,5 @@ void MuxControl::disableMuxPort(int portNumber)
 
   Wire.write(settings);
   Wire.endTransmission();
+  #endif
 }

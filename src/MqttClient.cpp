@@ -10,6 +10,7 @@ char mqttErrorTopic[128];
 char mqttConfigTopic[128];
 char mqttConfigSetTopic[128];
 char mqttConfigGetTopic[128];
+char mqttSetFanTopic[128];
 
 char systemStateMessageLc[4096];
 int lastStatePublished = millis();
@@ -50,6 +51,9 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
 
     sprintf(mqttConfigGetTopic, "%s/%s/config/get", mqttTopic, deviceIdentifier);
     Serial.println("mqttConfigGetTopic: " + String(mqttConfigGetTopic));
+
+    sprintf(mqttSetFanTopic, "%s/%s/fan/set", mqttTopic, deviceIdentifier);
+    Serial.println("mqttSetFanTopic: " + String(mqttSetFanTopic));
 }
 
 void MqttClient::loop()
@@ -77,6 +81,7 @@ void MqttClient::reconnectMqtt()
       Serial.println("Connected to MQTT broker!");
       this->client->subscribe(mqttConfigGetTopic);
       this->client->subscribe(mqttConfigSetTopic);
+      this->client->subscribe(mqttSetFanTopic);
     } 
     else 
     {
@@ -116,6 +121,30 @@ void MqttClient::MessageReceived(char* topic, byte* payload, unsigned int length
   {
     publishConfig();
   }
+  else if(strcmp(topic, mqttSetFanTopic) == 0)
+  {
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, payload);
+
+    switch (error.code()) {
+      case DeserializationError::Ok:
+        handleSetFanMessage(&doc);
+        break;
+      case DeserializationError::InvalidInput:
+        publishError(F("Invalid input!"));
+        break;
+      case DeserializationError::NoMemory:
+        publishError(F("Not enough memory"));
+        break;
+      default:
+        publishError(F("Deserialization failed"));
+        break;
+    }
+  }
+}
+
+void MqttClient::handleSetFanMessage(StaticJsonDocument<200> *doc) {
+  this->FanSetValue = max(40, min(100, (*doc)["fan"].as<int>()));
 }
 
 void MqttClient::handleConfigMessage(StaticJsonDocument<200> *doc) {
@@ -218,14 +247,19 @@ void MqttClient::publishSystemState()
     doc["BMEWarningCode"] = BMEWarningCode;
   }
 
+  doc["FanSetValue"] = FanSetValue;
+
   serializeJson(doc, message);
 
-  if (strcmp(message, systemStateMessageLc) != 0 || (millis() - lastStatePublished) > 30000)
+  if (strcmp(message, systemStateMessageLc) != 0 || (millis() - lastStatePublished) > 10000)
   {
     strcpy(systemStateMessageLc, message);
 
     // now add json properties which should not be diffed
     doc["WiFiRSSI"] = WiFiRSSI;
+    doc["FanTachoValue"] = FanTachoValue;
+    
+
     serializeJson(doc, message);
 
     lastStatePublished = millis();
