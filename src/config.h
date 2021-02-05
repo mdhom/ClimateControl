@@ -2,8 +2,8 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
-const char* roomIdentifier              = "DachbodenFan";
-const char* mqttTopic                   = "climatecontrol";
+const char* roomIdentifier              = "Dachboden";
+const char* mqttTopic                   = "airControl";
 
 const char* mqttWriteTopicSuffix        = "write";
 const char* mqttStateRequestSuffix      = "get";
@@ -24,8 +24,9 @@ IPAddress broker(192,168,188,149);                     // Address of the MQTT br
 const char* ssid     = "MMD";
 const char* password = "MMD%83139%";
 
+const int NumBME = 4;
 /* Sensor Settings */
-#define USE_BME680_IAQ
+//#define USE_BME680_IAQ
 //#define USE_BME680
 //#define USE_ENVIRONMENTALSENSOR
-//#define USE_MUX
+#define USE_MUX

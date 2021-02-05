@@ -14,6 +14,9 @@ struct BME680_IAQ_Data {
 
 class BME680_IAQ{
 public:
+    int index;
+    int lastRead;
+    int readInterval;
     bool dataUpdated;
     struct BME680_IAQ_Data data;
 
@@ -23,7 +26,7 @@ public:
     String BMEErrorCode;
     String BMEWarningCode;
     
-    void begin();
+    void begin(int index);
     void loop();
 private:
     void checkIaqSensorStatus(void);

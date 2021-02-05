@@ -10,19 +10,17 @@
 
 class MqttClient{
 public:
-    bool BME280Equipped, CCS811Equipped, BME680Equipped;
-    bool BME280Online, CCS811Online, BME680Online;
-    String BSECErrorCode, BSECWarningCode, BMEErrorCode, BMEWarningCode;
+    bool BME680Online[4];
+    String BSECErrorCode[4], BSECWarningCode[4], BMEErrorCode[4], BMEWarningCode[4];
     int8_t WiFiRSSI;
-    float FanSetValue = 70;
-    float FanTachoValue;
+    float FanInSetValue = 50;
+    float FanOutSetValue = 50;
 
     MqttClient(PubSubClient *client, PreferencesManager *preferences);
     void begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier);
     void loop();
 
-    void publishBMEState(float temperature, float pressure, float humidity, float gas);
-    void publishBMEState(struct BME680_IAQ_Data *data);
+    void publishBMEState(int bmeIndex, struct BME680_IAQ_Data *data);
 
     void publishESState(float temperature, float humidity);
 

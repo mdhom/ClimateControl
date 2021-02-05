@@ -15,29 +15,26 @@ PubSubClient client(wificlient);
 MqttClient mqtt(&client, &preferencesManager);
 int lastSystemStatePublished = millis();
 
-Fan fan(21, 1, 25000, 8, 17);
+Fan fanIn(17, 1, 5000, 8);
+Fan fanOut(16, 1, 5000, 8);
 
 MuxControl mux;
 
-#ifdef USE_ENVIRONMENTALSENSOR
-  #include "EnvironmentalSensor.h"
-  EnvironmentalSensor environmentalSensor;
-  int lastEnvironmentalSensorMeasured  = millis();
-  int lastEnvironmentalSensorPublished = millis();
-#endif
-#ifdef USE_BME60
-  #include "BME680.h"
-  BME680 bme;
-  int lastBMEStatePublished = millis();
-#endif
-#ifdef USE_BME680_IAQ
-  #include "BME680_IAQ.h"
-  BME680_IAQ bmeIAQ;
-  int lastBMEPublished = millis();
-#endif
+#include "BME680_IAQ.h"
+BME680_IAQ bmes[NumBME];
+int muxPortsBME[NumBME];
+int lastBMEPublished[NumBME];
 
 void setup() 
 {  
+  for (int i = 0; i < NumBME; i++) {
+    lastBMEPublished[i] = millis();
+  }
+  muxPortsBME[0] = 0;
+  muxPortsBME[1] = 1;
+  muxPortsBME[2] = 6;
+  muxPortsBME[3] = 7;
+
   Serial.begin(115200);
   Serial.println();
   Serial.println();
@@ -55,32 +52,15 @@ void setup()
 
   // start I2C
   Wire.begin();
-  #ifdef USE_BME60
-    mqtt.BME680Equipped = true;
-
-    mux.enableMuxPort(0);
-    while (!bme.begin()) {
-      delay(1000);
-    }
-    mux.disableMuxPort(0);
-  #endif
-  #ifdef USE_BME680_IAQ
-    mqtt.BME680Equipped = true;
-
-    mux.enableMuxPort(0);
-    bmeIAQ.begin();
-    mux.disableMuxPort(0);
-  #endif
-  #ifdef USE_ENVIRONMENTALSENSOR
-    mqtt.BME280Equipped = true;
-    mqtt.CCS811Equipped = true;
-
-    mux.enableMuxPort(1);
-    environmentalSensor.begin();
-    mux.disableMuxPort(1);
-  #endif
   
-  fan.begin();
+  for (int i = 0; i < NumBME; i++) {
+    mux.enableMuxPort(muxPortsBME[i]);
+    bmes[i].begin(i);
+    mux.disableMuxPort(muxPortsBME[i]);
+  }
+  
+  fanIn.begin();
+  fanOut.begin();
 }
 
 void loop() 
@@ -95,65 +75,35 @@ void loop()
   
   mqtt.loop();
 
-  #ifdef USE_ENVIRONMENTALSENSOR
-    if ((millis() - lastEnvironmentalSensorMeasured) > 1000) {
-      mux.enableMuxPort(1);
-      environmentalSensor.fetch();
-      mux.disableMuxPort(1);
+  for (int i = 0; i < NumBME; i++) {
+    mux.enableMuxPort(muxPortsBME[i]);
+    bmes[i].loop();
+    mux.disableMuxPort(muxPortsBME[i]);
 
-      mqtt.CCS811Online = environmentalSensor.CCS811Online;
-      mqtt.BME280Online = environmentalSensor.BME280Online;
+    mqtt.BME680Online[i]    = bmes[i].isOnline;
+    mqtt.BSECErrorCode[i]   = bmes[i].BSECErrorCode;
+    mqtt.BSECWarningCode[i] = bmes[i].BSECWarningCode;
+    mqtt.BMEErrorCode[i]    = bmes[i].BMEErrorCode;
+    mqtt.BMEWarningCode[i]  = bmes[i].BMEWarningCode;
 
-      lastEnvironmentalSensorMeasured = millis();
-
-      if ((millis() - lastEnvironmentalSensorPublished) > preferencesManager.GetPublishInterval()) {
-        lastEnvironmentalSensorPublished = millis();
-
-        mqtt.publishESState(
-          environmentalSensor.Temperature, 
-          environmentalSensor.Humidity);
-      }
+    if ((millis() - lastBMEPublished[i]) > preferencesManager.GetPublishInterval()) {
+      lastBMEPublished[i] = millis();
+      mqtt.publishBMEState(i, &bmes[i].data);
     }
-  #endif
-  #ifdef USE_BME60
-    if ((millis() - lastBMEStatePublished) > 1000) {
-      mux.enableMuxPort(0);
-      bme.startReading();
-      // could do some other work here
-      bme.endReading();
-      mux.disableMuxPort(0);
-
-      mqtt.BME680Online = bme.isOnline;
-
-      lastBMEStatePublished = millis();
-      mqtt.publishBMEState(bme.Temperature, bme.Pressure, bme.Humidity, bme.Gas);
-    }
-  #endif
-  #ifdef USE_BME680_IAQ
-    mux.enableMuxPort(2);
-    bmeIAQ.loop();
-    mux.disableMuxPort(2);
-
-    mqtt.BME680Online    = bmeIAQ.isOnline;
-    mqtt.BSECErrorCode   = bmeIAQ.BSECErrorCode;
-    mqtt.BSECWarningCode = bmeIAQ.BSECWarningCode;
-    mqtt.BMEErrorCode    = bmeIAQ.BMEErrorCode;
-    mqtt.BMEWarningCode  = bmeIAQ.BMEWarningCode;
-
-    if ((millis() - lastBMEPublished) > preferencesManager.GetPublishInterval()) {
-      lastBMEPublished = millis();
-      mqtt.publishBMEState(&bmeIAQ.data);
-    }
-  #endif
+  }
 
   if ((millis() - lastSystemStatePublished) > 500) {
     lastSystemStatePublished = millis();
     mqtt.publishSystemState();
   }
 
-  if (fan.setSpeed(mqtt.FanSetValue)) {
+  bool fanUpdated = false;
+  fanUpdated |= fanIn.setSpeed(mqtt.FanInSetValue);
+  fanUpdated |= fanOut.setSpeed(mqtt.FanOutSetValue);
+  if (fanUpdated) {
     mqtt.publishSystemState();
   }
-  fan.loop();
-  mqtt.FanTachoValue = fan.TachoSpeed;
+
+  fanIn.loop();
+  fanOut.loop();
 }

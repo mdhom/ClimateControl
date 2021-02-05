@@ -58,7 +58,7 @@ bool Fan::setSpeed(double percentage)
 {
     if (percentage != SetSpeed) {
         SetSpeed = percentage;
-        ledcWrite(pwmChannel, ((SetSpeed - tachoMinimumSpeed) / (100.0 - tachoMinimumSpeed)) * 255); 
+        ledcWrite(pwmChannel, SetSpeed / 100.0 * 255); 
 
         return true;
     }

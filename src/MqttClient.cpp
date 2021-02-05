@@ -3,7 +3,7 @@
 #include "MqttClient.h"
 #include "PreferencesManager.h"
 
-char mqttBMETopic[128];
+char mqttBMETopic[4][128];
 char mqttESTopic[128];
 char mqttSystemTopic[128];
 char mqttErrorTopic[128];
@@ -31,8 +31,11 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
     using std::placeholders::_3;
     this->client->setCallback(std::bind(&MqttClient::MessageReceived, this, _1, _2, _3));
         
-    sprintf(mqttBMETopic, "%s/%s/BME", mqttTopic, deviceIdentifier);
-    Serial.println("mqttBMETopic:       " + String(mqttBMETopic));
+    for (int i=0; i < 4; i++)
+    {
+      sprintf(mqttBMETopic[i], "%s/%s/BME/%i", mqttTopic, deviceIdentifier, i);
+      Serial.println("mqttBMETopic:       " + String(mqttBMETopic[i]));
+    }
         
     sprintf(mqttESTopic, "%s/%s/ES", mqttTopic, deviceIdentifier);
     Serial.println("mqttESTopic:        " + String(mqttESTopic));
@@ -53,7 +56,7 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
     Serial.println("mqttConfigGetTopic: " + String(mqttConfigGetTopic));
 
     sprintf(mqttSetFanTopic, "%s/%s/fan/set", mqttTopic, deviceIdentifier);
-    Serial.println("mqttSetFanTopic: " + String(mqttSetFanTopic));
+    Serial.println("mqttSetFanTopic:    " + String(mqttSetFanTopic));
 }
 
 void MqttClient::loop()
@@ -144,7 +147,8 @@ void MqttClient::MessageReceived(char* topic, byte* payload, unsigned int length
 }
 
 void MqttClient::handleSetFanMessage(StaticJsonDocument<200> *doc) {
-  this->FanSetValue = max(40, min(100, (*doc)["fan"].as<int>()));
+  this->FanInSetValue = max(0, min(100, (*doc)["fanIn"].as<int>()));
+  this->FanOutSetValue = max(0, min(100, (*doc)["fanOut"].as<int>()));
 }
 
 void MqttClient::handleConfigMessage(StaticJsonDocument<200> *doc) {
@@ -175,17 +179,11 @@ void MqttClient::publishConfig()
   this->client->publish(mqttConfigTopic, message);
 }
 
-void MqttClient::publishBMEState(float temperature, float pressure, float humidity, float gas) 
-{
-    char message[128];
-    sprintf(message, "{\"message\":\"%s\",\"data\":{\"temperature\":%.2f,\"pressure\":%.2f,\"humidity\":%.1f,\"gas\":%.1f }}", "Hello World", temperature, pressure, humidity, gas);
-    this->client->publish(mqttBMETopic, message);
-}
-
-void MqttClient::publishBMEState(BME680_IAQ_Data *data) 
+void MqttClient::publishBMEState(int bmeIndex, BME680_IAQ_Data *data) 
 {
   char message[4096];
   DynamicJsonDocument doc(4096);
+  doc["index"] = bmeIndex;
   doc["breathVocAccuracy"] = data->breathVocAccuracy;
   doc["breathVocEquivalent"] = data->breathVocEquivalent;
   doc["co2Accuracy"] = data->co2Accuracy;
@@ -209,7 +207,7 @@ void MqttClient::publishBMEState(BME680_IAQ_Data *data)
   doc["temperature"] = data->temperature;
   serializeJson(doc, message);
 
-  this->client->publish(mqttBMETopic, message);
+  this->client->publish(mqttBMETopic[bmeIndex], message);
 }
 
 void MqttClient::publishESState(float temperature, float humidity)
@@ -228,26 +226,18 @@ void MqttClient::publishSystemState()
   char message[4096];
   DynamicJsonDocument doc(4096);
 
-  doc["BME280Equipped"] = BME280Equipped;
-  if (BME280Equipped) {
-    doc["BME280Online"] = BME280Online;
+  int numBME = sizeof(BME680Online) / sizeof(BME680Online[0]);
+  for (int i=0; i < numBME; i++){
+    JsonObject bme = doc.createNestedObject("BME-"+String(i));
+    bme["BME680Online"] = BME680Online[i];
+    bme["BSECErrorCode"] = BSECErrorCode[i];
+    bme["BSECWarningCode"] = BSECWarningCode[i];
+    bme["BMEErrorCode"] = BMEErrorCode[i];
+    bme["BMEWarningCode"] = BMEWarningCode[i];
   }
 
-  doc["CCS811Equipped"] = CCS811Equipped;
-  if (CCS811Equipped) {
-    doc["CCS811Online"] = CCS811Online;
-  }
-
-  doc["BME680Equipped"] = BME680Equipped;
-  if (BME680Equipped) {
-    doc["BME680Online"] = BME680Online;
-    doc["BSECErrorCode"] = BSECErrorCode;
-    doc["BSECWarningCode"] = BSECWarningCode;
-    doc["BMEErrorCode"] = BMEErrorCode;
-    doc["BMEWarningCode"] = BMEWarningCode;
-  }
-
-  doc["FanSetValue"] = FanSetValue;
+  doc["FanInSetValue"] = FanInSetValue;
+  doc["FanOutSetValue"] = FanOutSetValue;
 
   serializeJson(doc, message);
 
@@ -257,7 +247,6 @@ void MqttClient::publishSystemState()
 
     // now add json properties which should not be diffed
     doc["WiFiRSSI"] = WiFiRSSI;
-    doc["FanTachoValue"] = FanTachoValue;
     
 
     serializeJson(doc, message);

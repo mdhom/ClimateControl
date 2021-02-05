@@ -10,10 +10,15 @@ MovingAverage maIAQ(20);
 MovingAverage maTemperature(20);
 MovingAverage maHumidity(20);
 
-void BME680_IAQ::begin() 
+void BME680_IAQ::begin(int index) 
 {
+  this->index = index;
+  this->lastRead = millis();
+
   iaqSensor.begin(BME680_I2C_ADDR_SECONDARY, Wire);
-  Serial.println("BSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix));
+  Serial.print("BME680(");
+  Serial.print(this->index);
+  Serial.println("): BSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix));
   checkIaqSensorStatus();
 
   bsec_virtual_sensor_t sensorList[10] = {
@@ -29,7 +34,7 @@ void BME680_IAQ::begin()
     BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
   };
 
-  iaqSensor.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
+  iaqSensor.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_CONTINUOUS);
   checkIaqSensorStatus();
 }
 
@@ -80,7 +85,14 @@ void BME680_IAQ::loop()
       this->data.iaqLevel = -2;
     }
 
-    Serial.print("BME680: Temp[");
+    this->readInterval = millis() - this->lastRead;
+    this->lastRead = millis();
+
+    Serial.print("BME680(");
+    Serial.print(this->index);
+    Serial.print("): Interval[");
+    Serial.print(this->readInterval);
+    Serial.print("]ms Temp[");
     Serial.print(iaqSensor.temperature);
     Serial.print("]C Pressure[");
     Serial.print(iaqSensor.pressure);
@@ -113,13 +125,17 @@ void BME680_IAQ::checkIaqSensorStatus(void)
       this->BSECErrorCode = String(iaqSensor.status);
       if ((millis() - lastErrorPrint) > 2000) {
         lastErrorPrint = millis();
-        Serial.println("BSEC error code : " + this->BSECErrorCode);
+        Serial.print("BME680(");
+        Serial.print(this->index);
+        Serial.print("): BSEC error code : " + this->BSECErrorCode);
       }
     } else {
       this->BSECWarningCode = String(iaqSensor.status);
       if ((millis() - lastErrorPrint) > 2000) {
         lastErrorPrint = millis();
-        Serial.println("BSEC warning code : " + this->BSECWarningCode);
+        Serial.print("BME680(");
+        Serial.print(this->index);
+        Serial.print("): BSEC warning code : " + this->BSECWarningCode);
       }
     }
   }
@@ -132,13 +148,17 @@ void BME680_IAQ::checkIaqSensorStatus(void)
       this->BMEErrorCode = String(iaqSensor.bme680Status);
       if ((millis() - lastErrorPrint) > 2000) {
         lastErrorPrint = millis();
-        Serial.println("BME680 error code : " + this->BMEErrorCode);
+        Serial.print("BME680(");
+        Serial.print(this->index);
+        Serial.print("): error code : " + this->BMEErrorCode);
       }
     } else {
       this->BMEWarningCode = String(iaqSensor.bme680Status);
       if ((millis() - lastErrorPrint) > 2000) {
         lastErrorPrint = millis();
-        Serial.println("BME680 warning code : " + this->BMEWarningCode);
+        Serial.print("BME680(");
+        Serial.print(this->index);
+        Serial.print("): warning code : " + this->BMEWarningCode);
       }
     }
   }
