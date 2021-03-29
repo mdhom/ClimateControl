@@ -19,6 +19,9 @@ public:
 
     MqttClient(PubSubClient *client, PreferencesManager *preferences);
     void begin(IPAddress *broker, const char *mqttTopic, const char *deviceIdentifier);
+
+    bool isConnected();
+    bool reconnect();
     void loop();
 
     void publishBMEState(float temperature, float pressure, float humidity, float gas);
@@ -36,7 +39,6 @@ private:
     const char *DeviceIdentifier;
     PubSubClient* client;
     PreferencesManager* preferencesManager;
-    void reconnectMqtt();
 
     void handleConfigMessage(StaticJsonDocument<200> *doc);
     void handleSetFanMessage(StaticJsonDocument<200> *doc);

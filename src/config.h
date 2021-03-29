@@ -29,3 +29,4 @@ const char* password = "MMD%83139%";
 //#define USE_BME680
 //#define USE_ENVIRONMENTALSENSOR
 //#define USE_MUX
+#define USE_OLED

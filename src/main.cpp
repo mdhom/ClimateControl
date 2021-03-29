@@ -13,7 +13,7 @@ WiFiClient wificlient;
 WifiReconnector wifiReconnector;
 PubSubClient client(wificlient);
 MqttClient mqtt(&client, &preferencesManager);
-int lastSystemStatePublished = millis();
+unsigned long lastSystemStatePublished = millis();
 
 Fan fan(21, 1, 25000, 8, 17);
 
@@ -22,18 +22,22 @@ MuxControl mux;
 #ifdef USE_ENVIRONMENTALSENSOR
   #include "EnvironmentalSensor.h"
   EnvironmentalSensor environmentalSensor;
-  int lastEnvironmentalSensorMeasured  = millis();
-  int lastEnvironmentalSensorPublished = millis();
+  unsigned long lastEnvironmentalSensorMeasured  = millis();
+  unsigned long lastEnvironmentalSensorPublished = millis();
 #endif
 #ifdef USE_BME60
   #include "BME680.h"
   BME680 bme;
-  int lastBMEStatePublished = millis();
+  unsigned long lastBMEStatePublished = millis();
 #endif
 #ifdef USE_BME680_IAQ
   #include "BME680_IAQ.h"
   BME680_IAQ bmeIAQ;
-  int lastBMEPublished = millis();
+  unsigned long lastBMEPublished = millis();
+#endif
+#ifdef USE_OLED
+  #include "OLED.h"
+  OLED display;
 #endif
 
 void setup() 
@@ -79,13 +83,26 @@ void setup()
     environmentalSensor.begin();
     mux.disableMuxPort(1);
   #endif
+
+  #ifdef USE_OLED
+    display.init();
+  #endif
   
   fan.begin();
+}
+
+bool isTimeouted(unsigned long lastTimestamp, unsigned long timeoutInterval)
+{
+  return (millis() - lastTimestamp) >= timeoutInterval || (millis() - lastTimestamp) < 0;
 }
 
 void loop() 
 {
   if (!wifiReconnector.isConnected()) {
+    #ifdef USE_OLED
+    display.showNoWlan();
+    #endif
+
     digitalWrite(LED_BUILTIN, HIGH);
     delay(500);
     digitalWrite(LED_BUILTIN, LOW);
@@ -93,10 +110,26 @@ void loop()
   }
   mqtt.WiFiRSSI = wifiReconnector.RSSI;
   
+  if (!mqtt.isConnected())
+  {
+    #ifdef USE_OLED
+    display.showNoMqtt();
+    #endif
+
+    Serial.println("Attempting to connect to MQTT broker...");
+    if (!mqtt.reconnect()) {
+      delay(3000);
+      return;
+    }
+  }
   mqtt.loop();
 
+  #ifdef USE_OLED
+  display.showWorking();
+  #endif
+
   #ifdef USE_ENVIRONMENTALSENSOR
-    if ((millis() - lastEnvironmentalSensorMeasured) > 1000) {
+    if (isTimeouted(lastEnvironmentalSensorMeasured, 1000UL)) {
       mux.enableMuxPort(1);
       environmentalSensor.fetch();
       mux.disableMuxPort(1);
@@ -106,7 +139,7 @@ void loop()
 
       lastEnvironmentalSensorMeasured = millis();
 
-      if ((millis() - lastEnvironmentalSensorPublished) > preferencesManager.GetPublishInterval()) {
+      if (isTimeouted(lastEnvironmentalSensorPublished, preferencesManager.GetPublishInterval())) {
         lastEnvironmentalSensorPublished = millis();
 
         mqtt.publishESState(
@@ -115,8 +148,9 @@ void loop()
       }
     }
   #endif
+
   #ifdef USE_BME60
-    if ((millis() - lastBMEStatePublished) > 1000) {
+    if (isTimeouted(lastBMEStatePublished, 1000UL)) {
       mux.enableMuxPort(0);
       bme.startReading();
       // could do some other work here
@@ -129,6 +163,7 @@ void loop()
       mqtt.publishBMEState(bme.Temperature, bme.Pressure, bme.Humidity, bme.Gas);
     }
   #endif
+
   #ifdef USE_BME680_IAQ
     mux.enableMuxPort(2);
     bmeIAQ.loop();
@@ -140,17 +175,19 @@ void loop()
     mqtt.BMEErrorCode    = bmeIAQ.BMEErrorCode;
     mqtt.BMEWarningCode  = bmeIAQ.BMEWarningCode;
 
-    if ((millis() - lastBMEPublished) > preferencesManager.GetPublishInterval()) {
+    if (isTimeouted(lastBMEPublished, preferencesManager.GetPublishInterval())) {
       lastBMEPublished = millis();
       mqtt.publishBMEState(&bmeIAQ.data);
     }
   #endif
 
-  if ((millis() - lastSystemStatePublished) > 500) {
+  // SYSTEM STATE
+  if (isTimeouted(lastSystemStatePublished, 500UL)) {
     lastSystemStatePublished = millis();
     mqtt.publishSystemState();
   }
 
+  // FAN HANDLING
   if (fan.setSpeed(mqtt.FanSetValue)) {
     mqtt.publishSystemState();
   }
