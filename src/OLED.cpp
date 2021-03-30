@@ -30,10 +30,14 @@ void OLED::showWorking()
 {
     oled.clear(PAGE);
 
-    int seconds = (millis() / 1000) % 60;
-    int minutes = (millis() / 1000 / 60) % 60;
-    int hours   = (millis() / 1000 / 60 / 60) % 24;
-    int days    = (millis() / 1000 / 60 / 60 / 24);
+    long seconds = millis() / 1000; //convect milliseconds to seconds
+    long minutes = seconds / 60; //convert seconds to minutes
+    long hours = minutes / 60; //convert minutes to hours
+    long days = hours / 24; //convert hours to days
+
+    seconds = seconds - (minutes * 60); //subtract the coverted seconds to minutes in order to display 59 secs max
+    minutes = minutes - (hours * 60); //subtract the coverted minutes to hours in order to display 59 minutes max
+    hours = hours - (days * 24); //subtract the coverted hours to days in order to display 23 hours max
 
     oled.setFontType(1);
     oled.setCursor(0, 0);
