@@ -9,7 +9,7 @@ public:
 
     void showNoWlan();
     void showNoMqtt();
-    void showWorking();
+    void showWorking(int step);
 private:
     void lineExample();
     void printTitle(String title, int font);

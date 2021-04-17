@@ -98,6 +98,10 @@ bool isTimeouted(unsigned long lastTimestamp, unsigned long timeoutInterval)
 
 void loop() 
 {
+  #ifdef USE_OLED
+  display.showWorking(0);
+  #endif
+
   if (!wifiReconnector.isConnected()) {
     #ifdef USE_OLED
     display.showNoWlan();
@@ -109,6 +113,10 @@ void loop()
     return;
   }
   mqtt.WiFiRSSI = wifiReconnector.RSSI;
+  
+  #ifdef USE_OLED
+  display.showWorking(1);
+  #endif
   
   if (!mqtt.isConnected())
   {
@@ -123,9 +131,9 @@ void loop()
     }
   }
   mqtt.loop();
-
+  
   #ifdef USE_OLED
-  display.showWorking();
+  display.showWorking(2);
   #endif
 
   #ifdef USE_ENVIRONMENTALSENSOR
@@ -169,6 +177,10 @@ void loop()
     bmeIAQ.loop();
     mux.disableMuxPort(2);
 
+    #ifdef USE_OLED
+    display.showWorking(3);
+    #endif
+
     mqtt.BME680Online    = bmeIAQ.isOnline;
     mqtt.BSECErrorCode   = bmeIAQ.BSECErrorCode;
     mqtt.BSECWarningCode = bmeIAQ.BSECWarningCode;
@@ -179,6 +191,10 @@ void loop()
       lastBMEPublished = millis();
       mqtt.publishBMEState(&bmeIAQ.data);
     }
+
+    #ifdef USE_OLED
+    display.showWorking(4);
+    #endif
   #endif
 
   // SYSTEM STATE
@@ -186,11 +202,21 @@ void loop()
     lastSystemStatePublished = millis();
     mqtt.publishSystemState();
   }
+    #ifdef USE_OLED
+    display.showWorking(5);
+    #endif
 
   // FAN HANDLING
   if (fan.setSpeed(mqtt.FanSetValue)) {
     mqtt.publishSystemState();
   }
+  #ifdef USE_OLED
+  display.showWorking(6);
+  #endif
+
   fan.loop();
   mqtt.FanTachoValue = fan.TachoSpeed;
+  #ifdef USE_OLED
+  display.showWorking(7);
+  #endif
 }

@@ -26,7 +26,7 @@ void OLED::showNoWlan()
     this->printTitle("WLAN", 1);
 }
 
-void OLED::showWorking()
+void OLED::showWorking(int step)
 {
     oled.clear(PAGE);
 
@@ -48,6 +48,8 @@ void OLED::showWorking()
     oled.print(String(hours) + "h");
     oled.setCursor(0, 36);
     oled.print(String(days) + "d");
+    oled.setCursor(32, 0);
+    oled.print("s" + String(step));
     
     if (barDirection) {
         barheight++;
