@@ -5,10 +5,12 @@
 
 class OLED{
 public:
+    int firmwareVersion;
     void init();
 
     void showNoWlan();
     void showNoMqtt();
+    void showOTAUpdate();
     void showWorking(int step);
 private:
     void lineExample();

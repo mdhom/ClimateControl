@@ -26,6 +26,11 @@ void OLED::showNoWlan()
     this->printTitle("WLAN", 1);
 }
 
+void OLED::showOTAUpdate()
+{
+    this->printTitle("OTA", 1);
+}
+
 void OLED::showWorking(int step)
 {
     oled.clear(PAGE);
@@ -50,6 +55,8 @@ void OLED::showWorking(int step)
     oled.print(String(days) + "d");
     oled.setCursor(32, 0);
     oled.print("s" + String(step));
+    oled.setCursor(32, 12);
+    oled.print("v" + String(this->firmwareVersion));
     
     if (barDirection) {
         barheight++;

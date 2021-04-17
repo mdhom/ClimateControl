@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <OTAUpdateClient.h>
 
 #include "config.h"
 #include "WifiReconnector.h"
@@ -11,9 +12,11 @@
 PreferencesManager preferencesManager;
 WiFiClient wificlient;
 WifiReconnector wifiReconnector;
+OTAUpdateClient updateClient(wificlient, "mdwd.org", 80);
 PubSubClient client(wificlient);
 MqttClient mqtt(&client, &preferencesManager);
 unsigned long lastSystemStatePublished = millis();
+bool wifiConnectedLc = false;
 
 Fan fan(21, 1, 25000, 8, 17);
 
@@ -52,7 +55,7 @@ void setup()
 
   WiFi.mode(WIFI_STA);
   wifiReconnector.begin(ssid, password);
-
+  
   mqtt.begin(&broker, mqttTopic, roomIdentifier);
 
   pinMode(LED_BUILTIN, OUTPUT);
@@ -103,6 +106,7 @@ void loop()
   #endif
 
   if (!wifiReconnector.isConnected()) {
+    wifiConnectedLc = false;
     #ifdef USE_OLED
     display.showNoWlan();
     #endif
@@ -111,6 +115,17 @@ void loop()
     delay(500);
     digitalWrite(LED_BUILTIN, LOW);
     return;
+  } else if (!wifiConnectedLc) {
+      // WiFi connection established!
+      wifiConnectedLc = true;
+      if (!updateClient.isUpdateAvailable("/climatecontrol/update/version.json"))
+      {
+          Serial.println("No update available");
+      } else {
+          Serial.println("Updating...");
+          updateClient.update("/climatecontrol/update/firmware.bin");
+      }
+      display.firmwareVersion = updateClient.getLocalVersion();
   }
   mqtt.WiFiRSSI = wifiReconnector.RSSI;
   

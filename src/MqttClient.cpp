@@ -11,6 +11,7 @@ char mqttConfigTopic[128];
 char mqttConfigSetTopic[128];
 char mqttConfigGetTopic[128];
 char mqttSetFanTopic[128];
+char mqttRestartTopic[128];
 
 char systemStateMessageLc[4096];
 int lastStatePublished = millis();
@@ -54,6 +55,9 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
 
     sprintf(mqttSetFanTopic, "%s/%s/fan/set", mqttTopic, deviceIdentifier);
     Serial.println("mqttSetFanTopic: " + String(mqttSetFanTopic));
+
+    sprintf(mqttRestartTopic, "%s/%s/restart", mqttTopic, deviceIdentifier);
+    Serial.println("mqttRestartTopic: " + String(mqttRestartTopic));
 }
 
 bool MqttClient::isConnected()
@@ -79,6 +83,7 @@ bool MqttClient::reconnect()
     this->client->subscribe(mqttConfigGetTopic);
     this->client->subscribe(mqttConfigSetTopic);
     this->client->subscribe(mqttSetFanTopic);
+    this->client->subscribe(mqttRestartTopic);
     return true;
   } 
   else 
@@ -115,6 +120,11 @@ void MqttClient::MessageReceived(char* topic, byte* payload, unsigned int length
   else if(strcmp(topic, mqttConfigGetTopic) == 0)
   {
     publishConfig();
+  }
+  else if (strcmp(topic, mqttRestartTopic) == 0)
+  {
+    Serial.println(F("Received restart command"));
+    ESP.restart();
   }
   else if(strcmp(topic, mqttSetFanTopic) == 0)
   {
