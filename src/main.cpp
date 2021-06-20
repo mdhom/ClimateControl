@@ -7,13 +7,16 @@
 #include "MuxControl.h"
 #include "PreferencesManager.h"
 #include "Fan.h"
+#include <OTAUpdateClient.h>
 
 PreferencesManager preferencesManager;
 WiFiClient wificlient;
 WifiReconnector wifiReconnector;
+OTAUpdateClient updateClient(wificlient, "mdwd.org", 80);
 PubSubClient client(wificlient);
 MqttClient mqtt(&client, &preferencesManager);
-int lastSystemStatePublished = millis();
+unsigned long lastSystemStatePublished = millis();
+bool wifiConnectedLc = false;
 
 Fan fanIn(17, 1, 5000, 8);
 Fan fanOut(16, 1, 5000, 8);
@@ -66,10 +69,21 @@ void setup()
 void loop() 
 {
   if (!wifiReconnector.isConnected()) {
+    wifiConnectedLc = false;
     digitalWrite(LED_BUILTIN, HIGH);
     delay(500);
     digitalWrite(LED_BUILTIN, LOW);
     return;
+  } else if (!wifiConnectedLc) {
+    // WiFi connection established!
+    wifiConnectedLc = true;
+    if (!updateClient.isUpdateAvailable("/aircontrol/update/version.json"))
+    {
+        Serial.println("No update available");
+    } else {
+        Serial.println("Updating...");
+        updateClient.update("/aircontrol/update/firmware.bin");
+    }
   }
   mqtt.WiFiRSSI = wifiReconnector.RSSI;
   
