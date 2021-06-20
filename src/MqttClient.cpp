@@ -11,6 +11,7 @@ char mqttConfigTopic[128];
 char mqttConfigSetTopic[128];
 char mqttConfigGetTopic[128];
 char mqttSetFanTopic[128];
+char mqttRestartTopic[128];
 
 char systemStateMessageLc[4096];
 int lastStatePublished = millis();
@@ -57,6 +58,9 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
 
     sprintf(mqttSetFanTopic, "%s/%s/fan/set", mqttTopic, deviceIdentifier);
     Serial.println("mqttSetFanTopic:    " + String(mqttSetFanTopic));
+
+    sprintf(mqttRestartTopic, "%s/%s/restart", mqttTopic, deviceIdentifier);
+    Serial.println("mqttRestartTopic: " + String(mqttRestartTopic));
 }
 
 void MqttClient::loop()
@@ -85,6 +89,7 @@ void MqttClient::reconnectMqtt()
       this->client->subscribe(mqttConfigGetTopic);
       this->client->subscribe(mqttConfigSetTopic);
       this->client->subscribe(mqttSetFanTopic);
+      this->client->subscribe(mqttRestartTopic);
     } 
     else 
     {
@@ -143,6 +148,11 @@ void MqttClient::MessageReceived(char* topic, byte* payload, unsigned int length
         publishError(F("Deserialization failed"));
         break;
     }
+  }
+  else if (strcmp(topic, mqttRestartTopic) == 0)
+  {
+    Serial.println(F("Received restart command"));
+    ESP.restart();
   }
 }
 
