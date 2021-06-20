@@ -63,42 +63,40 @@ void MqttClient::begin(IPAddress *broker, const char *mqttTopic, const char *dev
     Serial.println("mqttRestartTopic: " + String(mqttRestartTopic));
 }
 
-void MqttClient::loop()
+bool MqttClient::isConnected()
 {
-  if (!this->client->connected()) {
-    this->reconnectMqtt();
-  } else {
-    this->client->loop();
-  }
+  return this->client->connected();
 }
 
-void MqttClient::reconnectMqtt() 
+void MqttClient::loop()
 {
-  // Loop until we're reconnected
-  while (!this->client->connected())
-  {
-    Serial.println("Attempting to connect to MQTT broker...");
-    // Attempt to connect
+  this->client->loop();
+}
+
+bool MqttClient::reconnect() 
+{
+  Serial.println("Attempting to connect to MQTT broker...");
+  // Attempt to connect
 #ifdef USE_MQTT_AUTH
-    if (client.connect(CLIENT_ID, MQTT_USER, MQTT_PASSWORD))
+  if (client.connect(CLIENT_ID, MQTT_USER, MQTT_PASSWORD))
 #else
-    if(this->client->connect(this->DeviceIdentifier ))
+  if(this->client->connect(this->DeviceIdentifier ))
 #endif
-    {
-      Serial.println("Connected to MQTT broker!");
-      this->client->subscribe(mqttConfigGetTopic);
-      this->client->subscribe(mqttConfigSetTopic);
-      this->client->subscribe(mqttSetFanTopic);
-      this->client->subscribe(mqttRestartTopic);
-    } 
-    else 
-    {
-      Serial.print("Reconnect failed! State=");
-      Serial.println(this->client->state());
-      Serial.println("Retry in 3 seconds...");
-      delay(3000);
-      return;
-    }
+  {
+    Serial.println("Connected to MQTT broker!");
+    this->client->subscribe(mqttConfigGetTopic);
+    this->client->subscribe(mqttConfigSetTopic);
+    this->client->subscribe(mqttSetFanTopic);
+    this->client->subscribe(mqttRestartTopic);
+    return true;
+  } 
+  else 
+  {
+    Serial.print("Reconnect failed! State=");
+    Serial.println(this->client->state());
+    Serial.println("Retry in 3 seconds...");
+    delay(3000);
+    return false;
   }
 } 
 

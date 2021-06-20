@@ -26,7 +26,7 @@ MuxControl mux;
 #include "BME680_IAQ.h"
 BME680_IAQ bmes[NumBME];
 int muxPortsBME[NumBME];
-int lastBMEPublished[NumBME];
+unsigned long lastBMEPublished[NumBME];
 
 void setup() 
 {  
@@ -66,6 +66,11 @@ void setup()
   fanOut.begin();
 }
 
+bool isTimeouted(unsigned long lastTimestamp, unsigned long timeoutInterval)
+{
+  return (millis() - lastTimestamp) >= timeoutInterval || (millis() - lastTimestamp) < 0;
+}
+
 void loop() 
 {
   if (!wifiReconnector.isConnected()) {
@@ -87,6 +92,14 @@ void loop()
   }
   mqtt.WiFiRSSI = wifiReconnector.RSSI;
   
+  if (!mqtt.isConnected())
+  {
+    Serial.println("Attempting to connect to MQTT broker...");
+    if (!mqtt.reconnect()) {
+      delay(3000);
+      return;
+    }
+  }
   mqtt.loop();
 
   for (int i = 0; i < NumBME; i++) {
@@ -100,13 +113,13 @@ void loop()
     mqtt.BMEErrorCode[i]    = bmes[i].BMEErrorCode;
     mqtt.BMEWarningCode[i]  = bmes[i].BMEWarningCode;
 
-    if ((millis() - lastBMEPublished[i]) > preferencesManager.GetPublishInterval()) {
+    if (isTimeouted(lastBMEPublished[i], preferencesManager.GetPublishInterval())) {
       lastBMEPublished[i] = millis();
       mqtt.publishBMEState(i, &bmes[i].data);
     }
   }
 
-  if ((millis() - lastSystemStatePublished) > 500) {
+  if (isTimeouted(lastSystemStatePublished, 500UL)) {
     lastSystemStatePublished = millis();
     mqtt.publishSystemState();
   }
